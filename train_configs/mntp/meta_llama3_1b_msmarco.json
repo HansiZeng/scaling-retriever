@@ -1,5 +1,5 @@
 {
-    "model_name_or_path": "/gypsum/work1/xxx/hzeng/datasets/ai/llama3/Llama-3.2-1B",
+    "model_name_or_path": "/gypsum/work1/xxx/yyy/datasets/ai/llama3/Llama-3.2-1B",
     "train_file": "/work/yyy/ir-research/data/msmarco-full/lm/collection/raw.train.tsv",
     "validation_file": "/work/yyy/ir-research/data/msmarco-full/lm/collection/raw.dev.tsv",
     "cache_dir": "/work/yyy/.cache",
@@ -13,7 +13,7 @@
     "data_collator_type": "default",
     "mlm_probability": 0.2,
     "overwrite_output_dir": true,
-    "output_dir": "/gypsum/work1/xxx/hzeng/llm_as_retriever/checkpoints/mntp/llama3-1b-msmarco",
+    "output_dir": "/gypsum/work1/xxx/yyy/llm_as_retriever/checkpoints/mntp/llama3-1b-msmarco",
     "evaluation_strategy": "steps",
     "eval_steps": 200,
     "save_steps": 1000,
