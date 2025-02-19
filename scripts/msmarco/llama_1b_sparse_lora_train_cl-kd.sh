@@ -15,10 +15,10 @@ extract_task_weights() {
 }
 
 # train 
-corpus_path=/work/yyy/ir-research/data/msmarco-full/full_collection/raw.tsv
-train_path=/work/yyy/ir-research/llm_as_retriever_data/data/msmarco_train_teacher_scores.jsonl
+corpus_path=/work/hzeng_umass_edu/ir-research/data/msmarco-full/full_collection/raw.tsv
+train_path=/work/hzeng_umass_edu/ir-research/llm_as_retriever_data/data/msmarco_train_teacher_scores.jsonl
 
-model_name_or_path="/gypsum/work1/xxx/yyy/llm_as_retriever/checkpoints/mntp/llama3-1b-msmarco"
+model_name_or_path="/gypsum/work1/zamani/hzeng/llm_as_retriever/checkpoints/mntp/llama3-1b-msmarco"
 
 echo $teacher_score_path
 
@@ -62,7 +62,7 @@ for (( i=0; i<${#list_of_tuples[@]}; i+=4 )); do
 
     read query_reg doc_reg <<< $(extract_task_weights "$task_weights")
     run_name=llama3-1b-marco-mntp-sparse-nce-kldiv-lora-${lr}_qreg_${query_reg}_dreg_${doc_reg}_bs_${batch_size}_epochs_${epochs}_nnegs_${n_negs}
-    output_dir=/gypsum/work1/xxx/yyy/llm_as_retriever/checkpoints/$run_name
+    output_dir=/gypsum/work1/zamani/hzeng/llm_as_retriever/checkpoints/$run_name
 
     torchrun --nproc_per_node=$NGPU --master_port 4426 -m train_splade \
             --max_steps=$max_steps \
@@ -86,9 +86,9 @@ for (( i=0; i<${#list_of_tuples[@]}; i+=4 )); do
             --save_steps $save_steps \
             --save_total_limit=1 \
             --fsdp "full_shard auto_wrap" \
-            --train_config /work/yyy/ir-research/llm_as_retriever/train_configs/llama_config.json \
+            --train_config /work/hzeng_umass_edu/ir-research/llm_as_retriever/train_configs/llama_config.json \
             --gradient_checkpointing \
-            --fsdp_config /work/yyy/ir-research/llm_as_retriever/train_configs/fsdp_llama_config.json \
+            --fsdp_config /work/hzeng_umass_edu/ir-research/llm_as_retriever/train_configs/fsdp_llama_config.json \
             --lora \
             --model_type llama \
             --seed 45 \
