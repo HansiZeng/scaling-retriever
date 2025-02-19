@@ -1,4 +1,4 @@
-# Scaling Sparse and Dense Retrieval in Decoder-Only LLMs
+# LLMs for Sparse and Dense Retrieval: A Comparison of the Scaling Behavior of Different Retrieval Paradigms
 This is the repo for a SIGIR 2025 short paper submission.
 
 ## Pre-traning
