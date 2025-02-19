@@ -1,0 +1,9 @@
+{
+    "fsdp": {
+        "activation_checkpointing": true,
+        "cpu_ram_efficient_loading": false,
+        "forward_prefetch": false,
+        "sync_module_states": false,
+        "use_orig_params": true
+        }
+    }
