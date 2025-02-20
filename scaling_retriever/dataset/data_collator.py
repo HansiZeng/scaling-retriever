@@ -22,7 +22,7 @@ def tokenize_add_cls_token_id_and_padding(tokenizer, texts, max_length):
     return tokenized_texts
 
 
-class T5SpladeCollatorForNCE:
+class T5SparseCollatorForNCE:
     def __init__(self, tokenizer, query_max_length, doc_max_length):
         self.tokenizer = tokenizer
         self.query_max_length = query_max_length
@@ -50,7 +50,7 @@ class T5SpladeCollatorForNCE:
         }
 
 
-class LlamaSpladeCollatorForNCE:
+class LlamaSparseCollatorForNCE:
     def __init__(self, tokenizer, query_max_length, doc_max_length):
         self.tokenizer = tokenizer
         self.query_max_length = query_max_length
@@ -74,10 +74,10 @@ class LlamaSpladeCollatorForNCE:
             "tokenized_contexts": tokenized_contexts,
             "target_labels": labels, # we don't name it "labels", seems it might arise bugs using Huggingface Trainer
         }
-LlamaDenseCollatorForNCE = LlamaSpladeCollatorForNCE
+LlamaDenseCollatorForNCE = LlamaSparseCollatorForNCE
 
 
-class LlamaSpladeCollatorForKLDiv:
+class LlamaSparseCollatorForKLDiv:
     def __init__(self, tokenizer, query_max_length, doc_max_length):
         self.tokenizer = tokenizer
         self.query_max_length = query_max_length
@@ -107,10 +107,10 @@ class LlamaSpladeCollatorForKLDiv:
             "tokenized_contexts": tokenized_contexts,
             "teacher_scores": teacher_scores,
         }
-LlamaDenseCollatorForKLDiv = LlamaSpladeCollatorForKLDiv
+LlamaDenseCollatorForKLDiv = LlamaSparseCollatorForKLDiv
 
 
-class LlamaSpladeCollatorForNCE_KLDiv:
+class LlamaSparseCollatorForNCE_KLDiv:
     def __init__(self, tokenizer, query_max_length, doc_max_length):
         self.tokenizer = tokenizer
         self.query_max_length = query_max_length
@@ -154,10 +154,10 @@ class LlamaSpladeCollatorForNCE_KLDiv:
             "teacher_scores": teacher_scores,
             "teacher_idxes": teacher_idxes
         }
-LlamaDenseCollatorForNCE_KLDiv = LlamaSpladeCollatorForNCE_KLDiv
+LlamaDenseCollatorForNCE_KLDiv = LlamaSparseCollatorForNCE_KLDiv
 
 
-class T5SpladeCollectionCollator:
+class T5SparseCollectionCollator:
     def __init__(self, tokenizer, max_length):
         self.tokenizer = tokenizer
         self.max_length = max_length
@@ -174,7 +174,7 @@ class T5SpladeCollectionCollator:
         }
 
 
-class LlamaSpladeCollectionCollator:
+class LlamaSparseCollectionCollator:
     def __init__(self, tokenizer, max_length):
         self.tokenizer = tokenizer
         self.max_length = max_length
@@ -190,11 +190,11 @@ class LlamaSpladeCollectionCollator:
         }
         
 
-LlamaDenseCollectionCollator = LlamaSpladeCollectionCollator
-LlamaHybridCollectionCollator = LlamaSpladeCollectionCollator
+LlamaDenseCollectionCollator = LlamaSparseCollectionCollator
+LlamaHybridCollectionCollator = LlamaSparseCollectionCollator
         
 
-class LlamaSpladeCollatorForMarginMSE: 
+class LlamaSparseCollatorForMarginMSE: 
     def __init__(self, tokenizer, query_max_length, doc_max_length):
         self.query_max_length = query_max_length
         self.doc_max_length = doc_max_length
@@ -242,10 +242,10 @@ class LlamaSpladeCollatorForMarginMSE:
         }
 
 
-LlamaDenseCollatorForMarginMSE = LlamaSpladeCollatorForMarginMSE
+LlamaDenseCollatorForMarginMSE = LlamaSparseCollatorForMarginMSE
 
 
-class T5SpladeCollatorForMarginMSE:
+class T5SparseCollatorForMarginMSE:
     def __init__(self, tokenizer, query_max_length, doc_max_length):
         self.query_max_length = query_max_length
         self.doc_max_length = doc_max_length

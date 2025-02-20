@@ -135,6 +135,7 @@ cython_debug/
 # Custom directories to ignore
 wandb/
 sbatch_jobs/
+hzeng/
 
 # Other custom ignores
 *.DS_Store

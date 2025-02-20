@@ -335,7 +335,7 @@ class LLM2RetrieverTrainingArgs(TrainingArguments):
         assert self.loss_type in ["nce", "margin_mse", "nce_kldiv", "kldiv"]
 
 
-class SpladeTrainer(Trainer):
+class SparseTrainer(Trainer):
     def __init__(self, 
                 reg_to_reg_scheduler=None,
                 **kwargs):

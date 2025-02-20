@@ -59,7 +59,7 @@ for (( i=0; i<${#list_of_tuples[@]}; i+=3 )); do
     run_name=llama3-3b-marco-mntp-sparse-mgmse-lora-${lr}_qreg_${query_reg}_dreg_${doc_reg}_bs_${batch_size}_ep_${epochs}
     output_dir=/gypsum/work1/xxx/yyy/llm_as_retriever/checkpoints/$run_name
 
-    torchrun --nproc_per_node=$NGPU --master_port 4426 -m train_splade \
+    torchrun --nproc_per_node=$NGPU --master_port 4426 -m train_sparse \
             --max_steps=$max_steps \
             --run_name=$run_name \
             --learning_rate=$lr \

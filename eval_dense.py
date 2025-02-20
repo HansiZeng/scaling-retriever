@@ -18,13 +18,13 @@ from tqdm import tqdm
 from beir import util, LoggingHandler
 from beir.datasets.data_loader import GenericDataLoader
 
-from modeling.llm_encoder import LlamaBiDense
-from dataset.dataset import CollectionDataset, MSMARCOQueryDataset, BeirDataset
-from dataset.data_collator import LlamaDenseCollectionCollator
-from indexer import store_embs, DenseFlatIndexer
-from utils.utils import is_first_worker, obtain_doc_vec_dir_files, supports_bfloat16
+from scaling_retriever.modeling.llm_encoder import LlamaBiDense
+from scaling_retriever.dataset.dataset import CollectionDataset, MSMARCOQueryDataset, BeirDataset
+from scaling_retriever.dataset.data_collator import LlamaDenseCollectionCollator
+from scaling_retriever.indexer import store_embs, DenseFlatIndexer
+from scaling_retriever.utils.utils import is_first_worker, obtain_doc_vec_dir_files, supports_bfloat16
 import constants
-from utils.metrics import load_and_evaluate, evaluate_beir
+from scaling_retriever.utils.metrics import load_and_evaluate, evaluate_beir
 
 def ddp_setup(args):
     init_process_group(backend="nccl")

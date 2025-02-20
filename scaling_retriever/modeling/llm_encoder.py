@@ -2,10 +2,13 @@ import torch
 from transformers import T5ForConditionalGeneration, LlamaForCausalLM, BertForMaskedLM, AutoConfig
 from peft import LoraConfig, TaskType, get_peft_model, PeftModel
 import ujson
+import os 
 
-from .losses.regulariaztion import init_regularizer
-from .bidirectional_llama import LlamaBiForMNTP, LlamaBiModel
-from .bidrectional_qwen2 import Qwen2BiForMNTP, Qwen2BiModel
+from huggingface_hub import hf_hub_download
+
+from scaling_retriever.modeling.losses.regulariaztion import init_regularizer
+from scaling_retriever.modeling.bidirectional_llama import LlamaBiForMNTP, LlamaBiModel
+from scaling_retriever.modeling.bidrectional_qwen2 import Qwen2BiForMNTP, Qwen2BiModel
 
 
 class LLM2Retriever(torch.nn.Module):
@@ -122,12 +125,31 @@ class LLM2Retriever(torch.nn.Module):
             model = cls(base_model)
         
         return model
+
+    @classmethod
+    def load_from_lora(cls,
+                       lora_name_or_path,
+                       merge_peft=True, 
+                       is_trainable=False):
+        if os.path.isdir(lora_name_or_path):
+            adapter_config_path = os.path.join(lora_name_or_path, "adapter_config.json")
+        else:
+            adapter_config_path = hf_hub_download(lora_name_or_path, "adapter_config.json")
+            
+        with open(adapter_config_path, "r") as f:
+            adapter_config = ujson.load(f)
+            
+        base_model_name_or_path = adapter_config["base_model_name_or_path"]
+        return cls.load(base_model_name_or_path, 
+                        lora_name_or_path=lora_name_or_path, 
+                        merge_peft=merge_peft, 
+                        is_trainable=is_trainable)
             
     def save_pretrained(self, save_dir):
         self.base_model.save_pretrained(save_dir)
    
         
-class T5Splade(LLM2Retriever):
+class T5Sparse(LLM2Retriever):
     TRANSFORMER_CLS = T5ForConditionalGeneration
     TARGET_MODULES = ["q", "v", "o", "k", "wi_0", "wi_1", "wo"]
     
@@ -146,7 +168,7 @@ class T5Splade(LLM2Retriever):
         return reps
 
 
-class DecoderOnlyBiSplade(LLM2Retriever):
+class DecoderOnlyBiSparse(LLM2Retriever):
     def __init__(self, base_model):
         super().__init__(base_model)
         self.vocab_size = self.base_model.config.vocab_size
@@ -170,20 +192,20 @@ class DecoderOnlyBiSplade(LLM2Retriever):
         return reps
     
 
-class LlamaBiSplade(DecoderOnlyBiSplade):
+class LlamaBiSparse(DecoderOnlyBiSparse):
     TRANSFORMER_CLS = LlamaBiForMNTP
     TARGET_MODULES = ["q_proj", "v_proj", "o_proj", "k_proj", "down_proj", "up_proj", "gate_proj"]
     
     
-class Qwen2BiSplade(DecoderOnlyBiSplade):
+class Qwen2BiSparse(DecoderOnlyBiSparse):
     TRANSFORMER_CLS = Qwen2BiForMNTP
     TARGET_MODULES = ["q_proj", "v_proj", "o_proj", "k_proj", "down_proj", "up_proj", "gate_proj"]
     
-LlamaBiSpladeForNCE = LlamaBiSplade 
-Qwen2BiSpladeForNCE = Qwen2BiSplade
+LlamaBiSparseForNCE = LlamaBiSparse 
+Qwen2BiSparseForNCE = Qwen2BiSparse
 
 
-class LlamaBiSpladeForMarginMSE(LlamaBiSplade):
+class LlamaBiSparseForMarginMSE(LlamaBiSparse):
     def __init__(self, base_model):
         super().__init__(base_model)
         self.rank_loss = torch.nn.MSELoss()
@@ -207,7 +229,7 @@ class LlamaBiSpladeForMarginMSE(LlamaBiSplade):
         }
         
 
-class LlamaBiSpladeForNCE_KLDiv(LlamaBiSplade):
+class LlamaBiSparseForNCE_KLDiv(LlamaBiSparse):
     def __init__(self, base_model):
         super().__init__(base_model)
         self.nce_loss = torch.nn.CrossEntropyLoss()
@@ -264,7 +286,7 @@ class LlamaBiSpladeForNCE_KLDiv(LlamaBiSplade):
         }
         
         
-class LlamaBiSpladeForKLDiv(LlamaBiSplade):
+class LlamaBiSparseForKLDiv(LlamaBiSparse):
     def __init__(self, base_model):
         super().__init__(base_model)
         self.rank_loss = torch.nn.KLDivLoss(reduction="batchmean", log_target=True)
@@ -293,7 +315,7 @@ class LlamaBiSpladeForKLDiv(LlamaBiSplade):
         }
 
 
-class Qwen2BiSpladeForMarginMSE(Qwen2BiSplade):
+class Qwen2BiSparseForMarginMSE(Qwen2BiSparse):
     def __init__(self, base_model):
         super().__init__(base_model)
         self.rank_loss = torch.nn.MSELoss()
@@ -317,7 +339,7 @@ class Qwen2BiSpladeForMarginMSE(Qwen2BiSplade):
         }
         
 
-class T5SpladeForMarginMSE(T5Splade):
+class T5SparseForMarginMSE(T5Sparse):
     def __init__(self, base_model):
         super().__init__(base_model)
         self.rank_loss = torch.nn.MSELoss()
@@ -456,10 +478,14 @@ class DecoderOnlyBiDense(LLM2Retriever):
             # It is hacky here, but we need to check wether the lora_name_or_path is with the expected format
             from safetensors.torch import load_file
             import os
-            if os.path.exists(os.path.join(lora_name_or_path, "adapter_model.safetensors")):
-                tmp_state_dict = load_file(os.path.join(lora_name_or_path, "adapter_model.safetensors"))
-            elif os.path.exists(os.path.join(lora_name_or_path, "adapter_model.bin")):
-                tmp_state_dict = torch.load(os.path.join(lora_name_or_path, "adapter_model.bin"))
+            if os.path.isdir(lora_name_or_path):
+                if os.path.exists(os.path.join(lora_name_or_path, "adapter_model.safetensors")):
+                    tmp_state_dict = load_file(os.path.join(lora_name_or_path, "adapter_model.safetensors"))
+                elif os.path.exists(os.path.join(lora_name_or_path, "adapter_model.bin")):
+                    tmp_state_dict = torch.load(os.path.join(lora_name_or_path, "adapter_model.bin"))
+            else: 
+                tmp_model_bin = hf_hub_download(lora_name_or_path, "adapter_model.bin")
+                tmp_state_dict = torch.load(tmp_model_bin)
             assert "base_model.model.model.layers" not in list(tmp_state_dict.keys())[0]
             assert "base_model.model.layers" in list(tmp_state_dict.keys())[0]
             tmp_state_dict = None

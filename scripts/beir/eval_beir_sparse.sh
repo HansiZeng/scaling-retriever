@@ -13,7 +13,7 @@ if [ $task_name = index_and_retrieval ]; then
             echo model_name_or_path $model_name_or_path
             echo dataset $dataset
             # index 
-            torchrun --nproc_per_node=4 --master_port 4432 -m eval_splade \
+            torchrun --nproc_per_node=4 --master_port 4432 -m eval_sparse \
                 --model_name_or_path $model_name_or_path \
                 --index_dir $model_name_or_path/beir/${dataset}/index \
                 --task_name indexing \
@@ -36,7 +36,7 @@ if [ $task_name = index_and_retrieval ]; then
             # retrieval 
             out_dir=$model_name_or_path/beir/all_retrieval/${dataset}
 
-            torchrun --nproc_per_node=1 --master_port 44450 -m eval_splade \
+            torchrun --nproc_per_node=1 --master_port 44450 -m eval_sparse \
                 --model_name_or_path $model_name_or_path \
                 --index_dir $model_name_or_path/beir/${dataset}/index \
                 --out_dir $out_dir \
@@ -49,7 +49,7 @@ if [ $task_name = index_and_retrieval ]; then
                 --doc_max_length 512 \
                 --eval_batch_size 64
 
-            python -m eval_splade \
+            python -m eval_sparse \
                 --task evaluate_beir \
                 --beir_dataset $dataset \
                 --beir_dataset_dir $beir_dataset_dir \

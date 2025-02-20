@@ -17,9 +17,9 @@ from numba import types
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import multiprocessing as mp
 
-from utils.utils import is_first_worker, to_list, obtain_doc_vec_dir_files, supports_bfloat16
-from utils.inverted_index import IndexDictOfArray
-from modeling.losses.regulariaztion import L0
+from scaling_retriever.utils.utils import is_first_worker, to_list, obtain_doc_vec_dir_files, supports_bfloat16
+from scaling_retriever.utils.inverted_index import IndexDictOfArray
+from scaling_retriever.modeling.losses.regulariaztion import L0
 
 logger = logging.getLogger()
 

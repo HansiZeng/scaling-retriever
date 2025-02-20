@@ -22,16 +22,30 @@ import numpy as np
 
 TRAINING_ARGS_NAME = "training_args.bin"
 
-from dataset.dataset import DualEncoderDatasetForMarginMSE, DualEncoderDatasetForNCE
-from dataset.data_collator import (
-    LlamaDenseCollatorForNCE,
-    LlamaDenseCollatorForMarginMSE
+from dataset.dataset import (
+    DualEncoderDatasetForNCE, 
+    DualEncoderDatasetForMarginMSE,
+    DualEncoderDatasetForKLDiv
 )
-    
-from modeling.llm_encoder import LlamaBiHybridRetrieverForMarginMSE, LlamaBiHybridRetrieverForNCE
-from tasks.hybrid_trainer import HybridTrainingArgs, HybridTrainer
+from dataset.data_collator import (
+    T5SparseCollatorForNCE,
+    T5SparseCollatorForMarginMSE,
+    LlamaSparseCollatorForNCE,
+    LlamaSparseCollatorForMarginMSE,
+    LlamaSparseCollatorForNCE_KLDiv,
+    LlamaSparseCollatorForKLDiv,
+)
+from modeling.llm_encoder import (
+    T5Sparse, 
+    LlamaBiSparse, 
+    T5SparseForMarginMSE, 
+    LlamaBiSparseForMarginMSE,
+    LlamaBiSparseForNCE_KLDiv,
+    LlamaBiSparseForKLDiv,
+)
+from tasks.sparse_trainer import LLM2RetrieverTrainingArgs, SparseTrainer
 from modeling.losses.regulariaztion import RegWeightScheduler
-
+from utils.utils import get_data_source
 
 logger = logging.getLogger(__name__)
 
@@ -46,11 +60,6 @@ def get_model_type(model_name_or_path):
     print("model_type: ", config.model_type) 
     return config.model_type
 
-def get_data_source(args):
-    if "msmarco" in args.corpus_path and "msmarco" in args.train_path:
-        return "msmarco" 
-    else:
-        raise NotImplementedError
     
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
@@ -67,7 +76,7 @@ def load_from_adpater(args, model_cls):
     return model
 
 if __name__ == "__main__":
-    parser = HfArgumentParser((HybridTrainingArgs))
+    parser = HfArgumentParser((LLM2RetrieverTrainingArgs))
     args = parser.parse_args_into_dataclasses()[0]
     if args.local_rank <= 0:
         os.makedirs(args.output_dir, exist_ok=True)
@@ -75,7 +84,10 @@ if __name__ == "__main__":
             ujson.dump(asdict(args), fout, indent=4)
             
     # Identify the model_type and either dense and sparse model 
-    model_type = args.model_type
+    if args.model_type is None:
+        model_type = get_model_type(args.model_name_or_path)
+    else:
+        model_type = args.model_type
     
     if args.loss_type == "nce":
         train_dataset= DualEncoderDatasetForNCE(
@@ -90,45 +102,61 @@ if __name__ == "__main__":
             train_path=args.train_path,
             data_source=get_data_source(args),
         )
+    elif args.loss_type in ["nce_kldiv", "kldiv"]:
+        train_dataset = DualEncoderDatasetForKLDiv(
+            corpus_path=args.corpus_path,
+            train_path=args.train_path,
+            data_source=get_data_source(args),
+            n_negs=args.n_negs
+        )
+    tokenizer = AutoTokenizer.from_pretrained(args.model_name_or_path)
     
-    if os.path.exists(os.path.join(args.model_name_or_path, "adapter_config.json")):
-        # It is hacky here and inconsistent with train_splade.py
-        # As we transform the lora_model's state_dict and config from MNTP to BiModel
-        # in the new folder without copy the tokenizer configs.
-        # Hence we will load the tokenizer from the base_model_name_or_path
-        with open(os.path.join(args.model_name_or_path, "adapter_config.json"), "r") as f:
-            adapter_config = ujson.load(f)
-        tokenizer = AutoTokenizer.from_pretrained(adapter_config["base_model_name_or_path"])
-    else:
-        raise NotImplementedError
-        tokenizer = AutoTokenizer.from_pretrained(args.model_name_or_path)
-    
-    if model_type == "llama":
+    if model_type == "t5":
+        if args.loss_type == "nce":
+            train_collator =  T5SparseCollatorForNCE(tokenizer=tokenizer, query_max_length=args.query_max_length,
+                                                        doc_max_length=args.doc_max_length)
+            model = T5Sparse.build(args.model_name_or_path, args)
+        elif args.loss_type == "margin_mse":
+            train_collator = T5SparseCollatorForMarginMSE(tokenizer=tokenizer, query_max_length=args.query_max_length,
+                                                        doc_max_length=args.doc_max_length)
+            model = T5SparseForMarginMSE.build(args.model_name_or_path, args)
+    elif model_type == "llama":
         if args.train_config is not None:
             with open(args.train_config, "r") as fin:
                 config = ujson.load(fin)
         else:
             config = None
         if args.loss_type == "nce":
-            train_collator = LlamaDenseCollatorForNCE(tokenizer=tokenizer, query_max_length=args.query_max_length,
+            train_collator = LlamaSparseCollatorForNCE(tokenizer=tokenizer, query_max_length=args.query_max_length,
                                                         doc_max_length=args.doc_max_length)
             if os.path.exists(os.path.join(args.model_name_or_path, "adapter_config.json")):
-                model = load_from_adpater(args, LlamaBiHybridRetrieverForNCE)
+                model = load_from_adpater(args, LlamaBiSparse)
             else:
-                model = LlamaBiHybridRetrieverForNCE.build(args.model_name_or_path, args, config=config)
+                model = LlamaBiSparse.build(args.model_name_or_path, args, config=config)
         elif args.loss_type == "margin_mse":
-            train_collator = LlamaDenseCollatorForMarginMSE(tokenizer=tokenizer, query_max_length=args.query_max_length,
+            train_collator = LlamaSparseCollatorForMarginMSE(tokenizer=tokenizer, query_max_length=args.query_max_length,
                                                         doc_max_length=args.doc_max_length)
             if os.path.exists(os.path.join(args.model_name_or_path, "adapter_config.json")):
-                model = load_from_adpater(args, LlamaBiHybridRetrieverForMarginMSE)
+                model = load_from_adpater(args, LlamaBiSparseForMarginMSE)
             else:
-                model = LlamaBiHybridRetrieverForMarginMSE.build(args.model_name_or_path, args, config=config)
-                
+                model = LlamaBiSparseForMarginMSE.build(args.model_name_or_path, args, config=config)
+        elif args.loss_type == "nce_kldiv":
+            train_collator = LlamaSparseCollatorForNCE_KLDiv(tokenizer=tokenizer, query_max_length=args.query_max_length,
+                                                        doc_max_length=args.doc_max_length)
+            if os.path.exists(os.path.join(args.model_name_or_path, "adapter_config.json")):
+                model = load_from_adpater(args, LlamaBiSparseForNCE_KLDiv)
+            else:
+                model = LlamaBiSparseForNCE_KLDiv.build(args.model_name_or_path, args, config=config)
+        elif args.loss_type == "kldiv":
+            train_collator = LlamaSparseCollatorForKLDiv(tokenizer=tokenizer, query_max_length=args.query_max_length,
+                                                        doc_max_length=args.doc_max_length)
+            if os.path.exists(os.path.join(args.model_name_or_path, "adapter_config.json")):
+                model = load_from_adpater(args, LlamaBiSparseForKLDiv)
+            else:
+                model = LlamaBiSparseForKLDiv.build(args.model_name_or_path, args, config=config)
         tokenizer.pad_token_id = tokenizer.eos_token_id
         tokenizer.pad_token = tokenizer.eos_token
         tokenizer.padding_side = "left"
-        #if model_type == "llama":
-        #    tokenizer.add_special_tokens({"cls_token": "<|eot_id|>"})
         
         # model might not be trainable after loading from lora 
         model.train()
@@ -146,7 +174,7 @@ if __name__ == "__main__":
     ))
     print("model: ", args.model_name_or_path, model_type)
     
-    trainer = HybridTrainer(
+    trainer = SparseTrainer(
         model=model,
         train_dataset=train_dataset,
         data_collator=train_collator,

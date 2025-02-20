@@ -13,17 +13,18 @@ import numpy as np
 import pandas as pd 
 from torch.utils.data.distributed import DistributedSampler
 from torch.distributed import init_process_group, destroy_process_group
-from utils.utils import supports_bfloat16
 from beir import util, LoggingHandler
 from beir.datasets.data_loader import GenericDataLoader
+from huggingface_hub import hf_hub_download
 
-from dataset.dataset import CollectionDataset, WikiQueryDataset, MSMARCOQueryDataset, BeirDataset
-from dataset.data_collator import T5SpladeCollectionCollator, LlamaSpladeCollectionCollator
-from modeling.llm_encoder import T5Splade, LlamaBiSplade
-from modeling.losses.regulariaztion import L0, FLOPS 
-from indexer import SparseIndexer, SparseRetrieval
+from scaling_retriever.dataset.dataset import CollectionDataset, WikiQueryDataset, MSMARCOQueryDataset, BeirDataset
+from scaling_retriever.dataset.data_collator import T5SparseCollectionCollator, LlamaSparseCollectionCollator
+from scaling_retriever.modeling.llm_encoder import T5Sparse, LlamaBiSparse
+from scaling_retriever.modeling.losses.regulariaztion import L0, FLOPS 
+from scaling_retriever.utils.utils import supports_bfloat16
+from scaling_retriever.indexer import SparseIndexer, SparseRetrieval
 import constants
-from utils.metrics import load_and_evaluate, evaluate_beir
+from scaling_retriever.utils.metrics import load_and_evaluate, evaluate_beir
 
 
 def ddp_setup(args):
@@ -31,7 +32,7 @@ def ddp_setup(args):
     args.local_rank = int(os.environ["LOCAL_RANK"])
 
 @dataclass
-class SpladeArguments:
+class SparseArguments:
     model_name_or_path: str = field(default=None)
     corpus_path: str = field(default="")
     index_dir: str = field(default=None)
@@ -71,7 +72,7 @@ class SpladeArguments:
             self.doc_max_length == 512 and self.query_max_length == 512         
         
         
-def splade_index(args, model_type):
+def sparse_index(args, model_type):
     ddp_setup(args)
     tokenizer = AutoTokenizer.from_pretrained(args.model_name_or_path)
     if args.is_beir and args.beir_dataset is not None:
@@ -84,8 +85,8 @@ def splade_index(args, model_type):
         d_collection = CollectionDataset(corpus_path=args.corpus_path, 
                                          data_source=constants.corpus_datasource[args.corpus_path])
     if model_type == "t5":
-        model = T5Splade.load(args.model_name_or_path)
-        d_collator = T5SpladeCollectionCollator(tokenizer=tokenizer, max_length=args.doc_max_length)
+        model = T5Sparse.load(args.model_name_or_path)
+        d_collator = T5SparseCollectionCollator(tokenizer=tokenizer, max_length=args.doc_max_length)
     elif model_type == "llama":
         # we might read the lora model, hence we should check whether contains adpater_config.json first 
         if os.path.exists(os.path.join(args.model_name_or_path, "adapter_config.json")):
@@ -93,11 +94,11 @@ def splade_index(args, model_type):
                 adapter_config = ujson.load(f)
             base_model_name_or_path = adapter_config["base_model_name_or_path"]
             print("load lora model from ", args.model_name_or_path) 
-            model = LlamaBiSplade.load(base_model_name_or_path, 
+            model = LlamaBiSparse.load(base_model_name_or_path, 
                                        lora_name_or_path=args.model_name_or_path)
         else:
-            model = LlamaBiSplade.load(args.model_name_or_path, args.lora_name_or_path)
-        d_collator = LlamaSpladeCollectionCollator(tokenizer=tokenizer, max_length=args.doc_max_length)
+            model = LlamaBiSparse.load(args.model_name_or_path, args.lora_name_or_path)
+        d_collator = LlamaSparseCollectionCollator(tokenizer=tokenizer, max_length=args.doc_max_length)
     d_loader = DataLoader(d_collection, batch_size=args.eval_batch_size, shuffle=False, 
                           collate_fn=d_collator, num_workers=2,
                           sampler=DistributedSampler(d_collection, shuffle=False))
@@ -113,7 +114,7 @@ def splade_index(args, model_type):
     indexer.index(d_loader)
     
     
-def splade_retrieval(args, model_type):
+def sparse_retrieval(args, model_type):
     ddp_setup(args)
     args.world_size = torch.distributed.get_world_size()
     print("local_rank = {}, world_size = {}".format(args.local_rank, args.world_size))
@@ -133,8 +134,8 @@ def splade_retrieval(args, model_type):
             q_collection = MSMARCOQueryDataset(args.query_path)
     
     if model_type == "t5":
-        model = T5Splade.load(args.model_name_or_path)
-        q_collator = T5SpladeCollectionCollator(tokenizer=tokenizer, max_length=args.query_max_length)
+        model = T5Sparse.load(args.model_name_or_path)
+        q_collator = T5SparseCollectionCollator(tokenizer=tokenizer, max_length=args.query_max_length)
     elif model_type == "llama":
          # we might read the lora model, hence we should check whether contains adpater_config.json first 
         if os.path.exists(os.path.join(args.model_name_or_path, "adapter_config.json")):
@@ -142,11 +143,11 @@ def splade_retrieval(args, model_type):
                 adapter_config = ujson.load(f)
             base_model_name_or_path = adapter_config["base_model_name_or_path"]
             print("load lora model from ", args.model_name_or_path) 
-            model = LlamaBiSplade.load(base_model_name_or_path, 
+            model = LlamaBiSparse.load(base_model_name_or_path, 
                                        lora_name_or_path=args.model_name_or_path)
         else:
-            model = LlamaBiSplade.load(args.model_name_or_path, args.lora_name_or_path)
-        q_collator = LlamaSpladeCollectionCollator(tokenizer=tokenizer, max_length=args.query_max_length)
+            model = LlamaBiSparse.load(args.model_name_or_path, args.lora_name_or_path)
+        q_collator = LlamaSparseCollectionCollator(tokenizer=tokenizer, max_length=args.query_max_length)
     if args.world_size > 1:
         #assert args.world_size in [1,4], args.world_size
         q_loader = DataLoader(q_collection, batch_size=args.eval_batch_size, shuffle=False,
@@ -180,20 +181,25 @@ def evaluate_msmarco(args):
 
     
 if __name__ == "__main__":
-    parser = HfArgumentParser((SpladeArguments))
+    parser = HfArgumentParser((SparseArguments))
     args = parser.parse_args_into_dataclasses()[0]
     
     # Identify model_type
     if args.task_name not in ["evaluate_msmarco", "evaluate_beir"]:
-        with open(os.path.join(args.model_name_or_path, "config.json"), "r") as f:
-            model_config = ujson.load(f)
+        if os.path.isdir(args.model_name_or_path): 
+            with open(os.path.join(args.model_name_or_path, "config.json"), "r") as f:
+                model_config = ujson.load(f)
+        else:
+            config_path = hf_hub_download(args.model_name_or_path, "config.json")
+            with open(config_path, "r") as f:
+                model_config = ujson.load(f)
         model_type = model_config["model_type"] 
         assert model_type in constants.supported_models, model_type
     
     if args.task_name == "indexing":
-        splade_index(args, model_type)
+        sparse_index(args, model_type)
     elif args.task_name == "retrieval":
-        splade_retrieval(args, model_type)
+        sparse_retrieval(args, model_type)
     elif args.task_name == "evaluate_msmarco":
         evaluate_msmarco(args)
     elif args.task_name == "evaluate_beir":
