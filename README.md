@@ -2,6 +2,10 @@
 
 
 # Environment
+Run `pip install -r requirements.txt`
+
+Also install `faiss` by:
+`conda install -c pytorch faiss-cpu=1.8.0`
 
 ## Getting Start
 ### Preparing the Models
