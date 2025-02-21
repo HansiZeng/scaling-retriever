@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # train 
-corpus_path=/work/yyy/ir-research/data/msmarco-full/full_collection/raw.tsv
+corpus_path=./data/msmarco-full//full_collection/raw.tsv
 train_path=/work/yyy/ir-research/llm_as_retriever_data/data/msmarco_qrel_added_query_teacher_scores.jsonl
 
 model_name_or_path="/gypsum/work1/xxx/yyy/llm_as_retriever/checkpoints/mntp/llama3-1b-msmarco/bimodel" 

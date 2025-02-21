@@ -136,6 +136,8 @@ cython_debug/
 wandb/
 sbatch_jobs/
 hzeng/
+data/
+output/
 
 # Other custom ignores
 *.DS_Store

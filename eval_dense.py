@@ -175,7 +175,7 @@ def main():
                                 shuffle=False, num_workers=1,
                                 sampler=DistributedSampler(collection_dataset, shuffle=False),
                                 collate_fn=data_collator)
-        model = load_from_adapter(args.model_name_or_path)
+        model = LlamaBiDense.load_from_lora(args.model_name_or_path)
         model.to(device)
         model.eval()
         
@@ -195,7 +195,7 @@ def main():
             print("hidden_size: ", config.hidden_size)
             index.init_index(config.hidden_size)
         
-        model = load_from_adapter(args.model_name_or_path)
+        model = LlamaBiDense.load_from_lora(args.model_name_or_path)
         model.to(device)
         model.eval()
         

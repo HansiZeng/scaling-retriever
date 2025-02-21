@@ -88,16 +88,8 @@ def sparse_index(args, model_type):
         model = T5Sparse.load(args.model_name_or_path)
         d_collator = T5SparseCollectionCollator(tokenizer=tokenizer, max_length=args.doc_max_length)
     elif model_type == "llama":
-        # we might read the lora model, hence we should check whether contains adpater_config.json first 
-        if os.path.exists(os.path.join(args.model_name_or_path, "adapter_config.json")):
-            with open(os.path.join(args.model_name_or_path, "adapter_config.json"), "r") as f:
-                adapter_config = ujson.load(f)
-            base_model_name_or_path = adapter_config["base_model_name_or_path"]
-            print("load lora model from ", args.model_name_or_path) 
-            model = LlamaBiSparse.load(base_model_name_or_path, 
-                                       lora_name_or_path=args.model_name_or_path)
-        else:
-            model = LlamaBiSparse.load(args.model_name_or_path, args.lora_name_or_path)
+        print(args.model_name_or_path)
+        model = LlamaBiSparse.load_from_lora(args.model_name_or_path)
         d_collator = LlamaSparseCollectionCollator(tokenizer=tokenizer, max_length=args.doc_max_length)
     d_loader = DataLoader(d_collection, batch_size=args.eval_batch_size, shuffle=False, 
                           collate_fn=d_collator, num_workers=2,
@@ -137,16 +129,7 @@ def sparse_retrieval(args, model_type):
         model = T5Sparse.load(args.model_name_or_path)
         q_collator = T5SparseCollectionCollator(tokenizer=tokenizer, max_length=args.query_max_length)
     elif model_type == "llama":
-         # we might read the lora model, hence we should check whether contains adpater_config.json first 
-        if os.path.exists(os.path.join(args.model_name_or_path, "adapter_config.json")):
-            with open(os.path.join(args.model_name_or_path, "adapter_config.json"), "r") as f:
-                adapter_config = ujson.load(f)
-            base_model_name_or_path = adapter_config["base_model_name_or_path"]
-            print("load lora model from ", args.model_name_or_path) 
-            model = LlamaBiSparse.load(base_model_name_or_path, 
-                                       lora_name_or_path=args.model_name_or_path)
-        else:
-            model = LlamaBiSparse.load(args.model_name_or_path, args.lora_name_or_path)
+        model = LlamaBiSparse.load_from_lora(args.model_name_or_path)
         q_collator = LlamaSparseCollectionCollator(tokenizer=tokenizer, max_length=args.query_max_length)
     if args.world_size > 1:
         #assert args.world_size in [1,4], args.world_size
