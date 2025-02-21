@@ -93,7 +93,7 @@ Change the model name to: `hzeng/Lion-DS-8B-llama3-marco-mntp`
 Then re-run the script:
 
 ```bash scripts/eval_dense.sh```
-# BEIR
+### BEIR
 
 #### Evauate the Sparse Model
 
