@@ -81,7 +81,7 @@ For efficient evaluation, **please ensure that you use more than 32 CPUs**, as u
 
 Our implementation utilizes **multi-threading for retrieval in an inverted index**, and an insufficient number of CPUs may lead to unexpected performance issues.  
 
-**Expected runtime:** On **MS MARCO Dev**, retrieval typically completes in **~15 minutes** under optimal CPU conditions.  
+Expected runtime: On **MS MARCO Dev**, retrieval typically completes in **~15 minutes** under optimal CPU conditions.  
 
 #### Evaluate the 1B Dense Model
 To evaluate the 1B dense model (hzeng/Lion-DS-1B-llama3-marco-mntp), run:
