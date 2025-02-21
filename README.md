@@ -1,11 +1,13 @@
 # *Scaling Sparse and Dense Retrieval in Decoder-Only LLMs*
 
 
-# Environment
-Run `pip install -r requirements.txt`
+# Environment Setup
+To use scaling_retriever, first install the requirement packages:
+```bash
+pip install -r requirements.txt
+conda install -c pytorch faiss-cpu=1.8.0
+```
 
-Also install `faiss` by:
-`conda install -c pytorch faiss-cpu=1.8.0`
 
 ## Getting Start
 ### Preparing the Models
