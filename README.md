@@ -4,7 +4,7 @@
 [![HF Link](https://img.shields.io/badge/HF%20Models-Scaling_Retrievers-FFD21E.svg)](https://huggingface.co/collections/hzeng/scaling-retrievers-67bbea385cfd91e7e32509ce)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/McGill-NLP/llm2vec/blob/main/LICENSE)
 
-
+This repo contains the checkpoints and source code for our paper [Scaling Sparse and Dense Retrieval in Decoder-Only LLMs](https://arxiv.org/abs/2502.15526).
 # Environment Setup
 To use scaling_retriever, first install the requirement packages:
 ```bash
