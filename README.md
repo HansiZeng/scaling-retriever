@@ -1,5 +1,9 @@
 # *Scaling Sparse and Dense Retrieval in Decoder-Only LLMs*
 
+[![arxiv](https://img.shields.io/badge/arXiv-2404.05961-b31b1b.svg)](https://arxiv.org/abs/2502.15526)
+[![HF Link](https://img.shields.io/badge/HF%20Models-Scaling_Retrievers-FFD21E.svg)](https://huggingface.co/collections/hzeng/scaling-retrievers-67bbea385cfd91e7e32509ce)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/McGill-NLP/llm2vec/blob/main/LICENSE)
+
 
 # Environment Setup
 To use scaling_retriever, first install the requirement packages:
