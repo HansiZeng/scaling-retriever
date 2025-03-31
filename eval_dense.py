@@ -60,6 +60,7 @@ class DenseRetrievalArguments:
     top_k: int = field(default=1000)
     local_rank: int = field(default=-1)
     world_size: int = field(default=1)
+    access_token: str = field(default=None)
     
     task_name: str = field(default="")
 
@@ -158,7 +159,8 @@ def main():
         if is_first_worker():
             os.makedirs(args.doc_embed_dir, exist_ok=True)
             
-        tokenizer = AutoTokenizer.from_pretrained(args.model_name_or_path)
+        tokenizer = AutoTokenizer.from_pretrained(args.model_name_or_path,
+                                                  access_token=args.access_token)
         if args.is_beir and args.beir_dataset is not None:
             url = f"https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/{args.beir_dataset}.zip"
             data_path = util.download_and_unzip(url, args.beir_dataset_dir)
@@ -175,7 +177,8 @@ def main():
                                 shuffle=False, num_workers=1,
                                 sampler=DistributedSampler(collection_dataset, shuffle=False),
                                 collate_fn=data_collator)
-        model = LlamaBiDense.load_from_lora(args.model_name_or_path)
+        model = LlamaBiDense.load_from_lora(args.model_name_or_path,
+                                            access_token=args.access_token)
         model.to(device)
         model.eval()
         

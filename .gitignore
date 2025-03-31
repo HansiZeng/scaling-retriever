@@ -138,6 +138,7 @@ sbatch_jobs/
 hzeng/
 data/
 output/
+scripts/debug_eval_dense.sh
 
 # Other custom ignores
 *.DS_Store

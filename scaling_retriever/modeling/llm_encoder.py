@@ -107,8 +107,10 @@ class LLM2Retriever(torch.nn.Module):
              model_name_or_path, 
              lora_name_or_path=None, 
              merge_peft=True,
-             is_trainable=False):
-        base_model = cls.TRANSFORMER_CLS.from_pretrained(model_name_or_path)
+             is_trainable=False,
+             access_token=None):
+        base_model = cls.TRANSFORMER_CLS.from_pretrained(model_name_or_path,
+                                                         access_token=access_token)
         
         if lora_name_or_path:
             lora_config = LoraConfig.from_pretrained(lora_name_or_path)
@@ -130,7 +132,8 @@ class LLM2Retriever(torch.nn.Module):
     def load_from_lora(cls,
                        lora_name_or_path,
                        merge_peft=True, 
-                       is_trainable=False):
+                       is_trainable=False,
+                       access_token=None):
         if os.path.isdir(lora_name_or_path):
             adapter_config_path = os.path.join(lora_name_or_path, "adapter_config.json")
         else:
@@ -143,7 +146,8 @@ class LLM2Retriever(torch.nn.Module):
         return cls.load(base_model_name_or_path, 
                         lora_name_or_path=lora_name_or_path, 
                         merge_peft=merge_peft, 
-                        is_trainable=is_trainable)
+                        is_trainable=is_trainable,
+                        access_token=access_token)
             
     def save_pretrained(self, save_dir):
         self.base_model.save_pretrained(save_dir)
@@ -473,7 +477,8 @@ class DecoderOnlyBiDense(LLM2Retriever):
              lora_name_or_path=None, 
              merge_peft=True,
              is_trainable=False,
-             T=0.01):
+             T=0.01,
+             access_token=None):
         if lora_name_or_path is not None:
             # It is hacky here, but we need to check wether the lora_name_or_path is with the expected format
             from safetensors.torch import load_file
@@ -491,6 +496,7 @@ class DecoderOnlyBiDense(LLM2Retriever):
             tmp_state_dict = None
                 
         base_model = cls.TRANSFORMER_CLS.from_pretrained(model_name_or_path)
+                                                         #access_token=access_token)
         
         if lora_name_or_path:
             lora_config = LoraConfig.from_pretrained(lora_name_or_path)
